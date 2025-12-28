@@ -1266,8 +1266,14 @@ void PollInputEvents(void)
             // Get current gamepad state
             // NOTE: There is no callback available, so we get it manually
             GLFWgamepadstate state = { 0 };
-            glfwGetGamepadState(i, &state); // This remapps all gamepads so they have their buttons mapped like an xbox controller
-
+            int result = glfwGetGamepadState(i, &state); // This remaps all gamepads so they have their buttons mapped like an xbox controller
+            if (result == GLFW_FALSE) // No joystick is connected, no gamepad mapping or an error occurred
+            {
+                // Setting axes to expected resting value instead of GLFW 0.0f default when gamepad is not connected
+                state.axes[GAMEPAD_AXIS_LEFT_TRIGGER] = -1.0f;
+                state.axes[GAMEPAD_AXIS_RIGHT_TRIGGER] = -1.0f;
+            }
+          
             const unsigned char *buttons = state.buttons;
 
             for (int k = 0; (buttons != NULL) && (k < MAX_GAMEPAD_BUTTONS); k++)
@@ -1962,7 +1968,7 @@ static void WindowDropCallback(GLFWwindow *window, int count, const char **paths
         for (unsigned int i = 0; i < CORE.Window.dropFileCount; i++)
         {
             CORE.Window.dropFilepaths[i] = (char *)RL_CALLOC(MAX_FILEPATH_LENGTH, sizeof(char));
-            strcpy(CORE.Window.dropFilepaths[i], paths[i]);
+            strncpy(CORE.Window.dropFilepaths[i], paths[i], MAX_FILEPATH_LENGTH - 1);
         }
     }
 }

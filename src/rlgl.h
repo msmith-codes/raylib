@@ -89,7 +89,7 @@
 *
 *   LICENSE: zlib/libpng
 *
-*   Copyright (c) 2014-2025 Ramon Santamaria (@raysan5)
+*   Copyright (c) 2014-2026 Ramon Santamaria (@raysan5)
 *
 *   This software is provided "as-is", without any express or implied warranty. In no event
 *   will the authors be held liable for any damages arising from the use of this software.
@@ -132,7 +132,6 @@
 // Support TRACELOG macros
 #ifndef TRACELOG
     #define TRACELOG(level, ...) (void)0
-    #define TRACELOGD(...) (void)0
 #endif
 
 // Allow custom memory allocators
@@ -3324,7 +3323,7 @@ unsigned int rlLoadTexture(const void *data, int width, int height, int format, 
         unsigned int glInternalFormat, glFormat, glType;
         rlGetGlTextureFormats(format, &glInternalFormat, &glFormat, &glType);
 
-        TRACELOGD("TEXTURE: Load mipmap level %i (%i x %i), size: %i, offset: %i", i, mipWidth, mipHeight, mipSize, mipOffset);
+        TRACELOG(RL_LOG_DEBUG, "TEXTURE: Load mipmap level %i (%i x %i), size: %i, offset: %i", i, mipWidth, mipHeight, mipSize, mipOffset);
 
         if (glInternalFormat != 0)
         {
@@ -3391,7 +3390,7 @@ unsigned int rlLoadTexture(const void *data, int width, int height, int format, 
         // Activate trilinear filtering if mipmaps are available
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        
+
         // Define the maximum number of mipmap levels to be used, 0 is base texture size
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_BASE_LEVEL, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, mipmapCount - 1);
@@ -4246,7 +4245,7 @@ unsigned int rlLoadShaderCode(const char *vsCode, const char *fsCode)
                 glGetActiveUniform(id, i, sizeof(name) - 1, &namelen, &num, &type, name);
 
                 name[namelen] = 0;
-                TRACELOGD("SHADER: [ID %i] Active uniform (%s) set at location: %i", id, name, glGetUniformLocation(id, name));
+                TRACELOG(RL_LOG_DEBUG, "SHADER: [ID %i] Active uniform (%s) set at location: %i", id, name, glGetUniformLocation(id, name));
             }
         }
         */

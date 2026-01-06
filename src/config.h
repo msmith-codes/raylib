@@ -6,7 +6,7 @@
 *
 *   LICENSE: zlib/libpng
 *
-*   Copyright (c) 2018-2025 Ahmad Fatoum & Ramon Santamaria (@raysan5)
+*   Copyright (c) 2018-2026 Ahmad Fatoum and Ramon Santamaria (@raysan5)
 *
 *   This software is provided "as-is", without any express or implied warranty. In no event
 *   will the authors be held liable for any damages arising from the use of this software.
@@ -287,9 +287,7 @@
 // Standard file io library (stdio.h) included
 #define SUPPORT_STANDARD_FILEIO         1
 // Show TRACELOG() output messages
-// NOTE: By default LOG_DEBUG traces not shown
 #define SUPPORT_TRACELOG                1
-//#define SUPPORT_TRACELOG_DEBUG          1
 
 // utils: Configuration values
 //------------------------------------------------------------------------------------

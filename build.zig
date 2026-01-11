@@ -197,7 +197,7 @@ fn compileRaylib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
     }
 
     var c_source_files: std.ArrayList([]const u8) = try .initCapacity(b.allocator, 2);
-    c_source_files.appendSliceAssumeCapacity(&.{ "src/rcore.c", "src/utils.c" });
+    c_source_files.appendSliceAssumeCapacity(&.{ "src/rcore.c" });
 
     if (options.rshapes) {
         try c_source_files.append(b.allocator, "src/rshapes.c");
@@ -348,7 +348,7 @@ fn compileRaylib(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.
             }
         },
         .freebsd, .openbsd, .netbsd, .dragonfly => {
-            try c_source_files.append(b.allocator, "rglfw.c");
+            try c_source_files.append(b.allocator, "src/rglfw.c");
             raylib.root_module.linkSystemLibrary("GL", .{});
             raylib.root_module.linkSystemLibrary("rt", .{});
             raylib.root_module.linkSystemLibrary("dl", .{});
@@ -522,12 +522,13 @@ fn addExamples(
     raylib: *std.Build.Step.Compile,
 ) !*std.Build.Step {
     const all = b.step(module, "All " ++ module ++ " examples");
+    const io = all.owner.graph.io;
     const module_subpath = b.pathJoin(&.{ "examples", module });
-    var dir = try std.fs.cwd().openDir(b.pathFromRoot(module_subpath), .{ .iterate = true });
-    defer dir.close();
+    var dir = try std.Io.Dir.cwd().openDir(io, b.pathFromRoot(module_subpath), .{ .iterate = true });
+    defer dir.close(io);
 
     var iter = dir.iterate();
-    while (try iter.next()) |entry| {
+    while (try iter.next(io)) |entry| {
         if (entry.kind != .file) continue;
         const extension_idx = std.mem.lastIndexOf(u8, entry.name, ".c") orelse continue;
         const name = entry.name[0..extension_idx];

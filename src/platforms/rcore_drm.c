@@ -13,9 +13,6 @@
 *       - Improvement 01
 *       - Improvement 02
 *
-*   ADDITIONAL NOTES:
-*       - TRACELOG() function is located in raylib [utils] module
-*
 *   CONFIGURATION:
 *       #define SUPPORT_SSH_KEYBOARD_RPI (Raspberry Pi only)
 *           Reconfigure standard input to receive key inputs, works with SSH connection
@@ -1418,6 +1415,7 @@ int InitPlatform(void)
     };
 
     EGLint numConfigs = 0;
+    const char *eglClientExtensions = NULL;
 
     // Get an EGL device connection
     // NOTE: eglGetPlatformDisplay() is preferred over eglGetDisplay() legacy call
@@ -1427,14 +1425,12 @@ int InitPlatform(void)
 #else
     // Check if extension is available for eglGetPlatformDisplayEXT()
     // NOTE: Better compatibility with some drivers (e.g. Mali Midgard)
-    const char *eglClientExtensions = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
-    if (eglClientExtensions != NULL)
+    eglClientExtensions = eglQueryString(EGL_NO_DISPLAY, EGL_EXTENSIONS);
+    if ((eglClientExtensions != NULL) && (strstr(eglClientExtensions, "EGL_EXT_platform_base") != NULL))
     {
-        if (strstr(eglClientExtensions, "EGL_EXT_platform_base") != NULL)
-        {
-            PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT = (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
-            if (eglGetPlatformDisplayEXT != NULL) platform.device = eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_KHR, platform.gbmDevice, NULL);
-        }
+        PFNEGLGETPLATFORMDISPLAYEXTPROC eglGetPlatformDisplayEXT = (PFNEGLGETPLATFORMDISPLAYEXTPROC)eglGetProcAddress("eglGetPlatformDisplayEXT");
+        
+        if (eglGetPlatformDisplayEXT != NULL) platform.device = eglGetPlatformDisplayEXT(EGL_PLATFORM_GBM_KHR, platform.gbmDevice, NULL);
     }
 
     // In case extension not found or display could not be retrieved, try useing legacy version
@@ -1523,13 +1519,9 @@ int InitPlatform(void)
 
     if ((eglClientExtensions != NULL) && (strstr(eglClientExtensions, "EGL_EXT_platform_base") != NULL))
     {
-        PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC eglCreatePlatformWindowSurfaceEXT =
-            (PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC)eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT");
+        PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC eglCreatePlatformWindowSurfaceEXT = (PFNEGLCREATEPLATFORMWINDOWSURFACEEXTPROC)eglGetProcAddress("eglCreatePlatformWindowSurfaceEXT");
 
-        if (eglCreatePlatformWindowSurfaceEXT != NULL)
-        {
-            platform.surface = eglCreatePlatformWindowSurfaceEXT(platform.device, platform.config, platform.gbmSurface, NULL);
-        }
+        if (eglCreatePlatformWindowSurfaceEXT != NULL) platform.surface = eglCreatePlatformWindowSurfaceEXT(platform.device, platform.config, platform.gbmSurface, NULL);
     }
 
     if (platform.surface == EGL_NO_SURFACE)

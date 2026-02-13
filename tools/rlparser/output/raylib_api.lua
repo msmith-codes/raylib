@@ -1030,6 +1030,11 @@ return {
       description = "ModelAnimation",
       fields = {
         {
+          type = "char[32]",
+          name = "name",
+          description = "Animation name"
+        },
+        {
           type = "int",
           name = "boneCount",
           description = "Number of bones"
@@ -1048,11 +1053,6 @@ return {
           type = "Transform **",
           name = "framePoses",
           description = "Poses array by frame"
-        },
-        {
-          type = "char[32]",
-          name = "name",
-          description = "Animation name"
         }
       }
     },
@@ -1324,11 +1324,6 @@ return {
       name = "FilePathList",
       description = "File path list",
       fields = {
-        {
-          type = "unsigned int",
-          name = "capacity",
-          description = "Filepaths max entries"
-        },
         {
           type = "unsigned int",
           name = "count",
@@ -4228,6 +4223,24 @@ return {
       returnType = "void",
       params = {
         {type = "FilePathList", name = "files"}
+      }
+    },
+    {
+      name = "GetDirectoryFileCount",
+      description = "Get the file count in a directory",
+      returnType = "unsigned int",
+      params = {
+        {type = "const char *", name = "dirPath"}
+      }
+    },
+    {
+      name = "GetDirectoryFileCountEx",
+      description = "Get the file count in a directory with extension filtering and recursive directory scan. Use 'DIR' in the filter string to include directories in the result",
+      returnType = "unsigned int",
+      params = {
+        {type = "const char *", name = "basePath"},
+        {type = "const char *", name = "filter"},
+        {type = "bool", name = "scanSubdirs"}
       }
     },
     {

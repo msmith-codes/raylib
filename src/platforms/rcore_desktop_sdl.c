@@ -49,7 +49,7 @@
     #define USING_SDL3_PROJECT
 #endif
 #ifndef SDL_ENABLE_OLD_NAMES
-    #define SDL_ENABLE_OLD_NAMES    // Just in case we're on SDL3, we need some in-between compatibily
+    #define SDL_ENABLE_OLD_NAMES    // Just in case on SDL3, some in-between compatibily is needed
 #endif
 // SDL base library (window/rendered, input, timing... functionality)
 #ifdef USING_SDL3_PROJECT
@@ -254,10 +254,10 @@ static const int CursorsLUT[] = {
 #if defined(USING_VERSION_SDL3)
 
 // SDL3 Migration:
-//     SDL_WINDOW_FULLSCREEN_DESKTOP has been removed,
-//     and you can call SDL_GetWindowFullscreenMode()
-//     to see whether an exclusive fullscreen mode will be used
-//     or the borderless fullscreen desktop mode will be used
+// SDL_WINDOW_FULLSCREEN_DESKTOP has been removed,
+// SDL_GetWindowFullscreenMode() can be called
+// to see whether an exclusive fullscreen mode will be used
+// or the borderless fullscreen desktop mode
 #define SDL_WINDOW_FULLSCREEN_DESKTOP SDL_WINDOW_FULLSCREEN
 
 #define SDL_IGNORE  false
@@ -323,7 +323,7 @@ Uint8 SDL_EventState(Uint32 type, int state)
     return stateBefore;
 }
 
-void SDL_GetCurrentDisplayMode_Adapter(SDL_DisplayID displayID, SDL_DisplayMode* mode)
+void SDL_GetCurrentDisplayMode_Adapter(SDL_DisplayID displayID, SDL_DisplayMode *mode)
 {
     const SDL_DisplayMode *currentMode = SDL_GetCurrentDisplayMode(displayID);
 
@@ -340,9 +340,8 @@ SDL_Surface *SDL_CreateRGBSurface(Uint32 flags, int width, int height, int depth
 }
 
 // SDL3 Migration:
-//     SDL_GetDisplayDPI() -
-//     not reliable across platforms, approximately replaced by multiplying
-//     SDL_GetWindowDisplayScale() times 160 on iPhone and Android, and 96 on other platforms
+// SDL_GetDisplayDPI() not reliable across platforms, approximately replaced by multiplying
+// SDL_GetWindowDisplayScale() times 160 on iPhone and Android, and 96 on other platforms
 // returns 0 on success or a negative error code on failure
 int SDL_GetDisplayDPI(int displayIndex, float *ddpi, float *hdpi, float *vdpi)
 {
@@ -413,7 +412,7 @@ int SDL_GetNumTouchFingers(SDL_TouchID touchID)
     return count;
 }
 
-#else // We're on SDL2
+#else // SDL2 fallback
 
 // Since SDL2 doesn't have this function we leave a stub
 // SDL_GetClipboardData function is available since SDL 3.1.3. (e.g. SDL3)
@@ -833,10 +832,9 @@ void SetWindowMonitor(int monitor)
     if ((monitor >= 0) && (monitor < monitorCount))
 #endif
     {
-        // NOTE:
-        // 1. SDL started supporting moving exclusive fullscreen windows between displays on SDL3,
-        //    see commit https://github.com/libsdl-org/SDL/commit/3f5ef7dd422057edbcf3e736107e34be4b75d9ba
-        // 2. A workaround for SDL2 is leaving fullscreen, moving the window, then entering full screen again
+        // NOTE 1: SDL started supporting moving exclusive fullscreen windows between displays on SDL3,
+        // see commit https://github.com/libsdl-org/SDL/commit/3f5ef7dd422057edbcf3e736107e34be4b75d9ba
+        // NOTE 2: A workaround for SDL2 is leaving fullscreen, moving the window, then entering full screen again
         const bool wasFullscreen = (FLAG_IS_SET(CORE.Window.flags, FLAG_FULLSCREEN_MODE))? true : false;
 
         const int screenWidth = CORE.Window.screen.width;
@@ -854,14 +852,13 @@ void SetWindowMonitor(int monitor)
             // If the screen size is larger than the monitor usable area, anchor it on the top left corner, otherwise, center it
             if ((screenWidth >= usableBounds.w) || (screenHeight >= usableBounds.h))
             {
-                // NOTE:
-                // 1. There's a known issue where if the window larger than the target display bounds,
-                //    when moving the windows to that display, the window could be clipped back
-                //    ending up positioned partly outside the target display
-                // 2. The workaround for that is, previously to moving the window,
-                //    setting the window size to the target display size, so they match
-                // 3. It wasn't done here because we can't assume changing the window size automatically
-                //    is acceptable behavior by the user
+                // NOTE 1: There's a known issue where if the window larger than the target display bounds,
+                // when moving the windows to that display, the window could be clipped back
+                // ending up positioned partly outside the target display
+                // NOTE 2: The workaround for that is, previously to moving the window,
+                // setting the window size to the target display size, so they match
+                // NOTE 3: It wasn't done here because we can't assume changing the window size automatically
+                // is acceptable behavior by the user
                 SDL_SetWindowPosition(platform.window, usableBounds.x, usableBounds.y);
                 CORE.Window.position.x = usableBounds.x;
                 CORE.Window.position.y = usableBounds.y;
@@ -1250,7 +1247,7 @@ void DisableCursor(void)
 void SwapScreenBuffer(void)
 {
 #if defined(GRAPHICS_API_OPENGL_11_SOFTWARE)
-    // NOTE: We use a preprocessor condition here because `rlCopyFramebuffer` is only declared for software rendering
+    // NOTE: We use a preprocessor condition here because rlCopyFramebuffer() is only declared for software rendering
     SDL_Surface *surface = SDL_GetWindowSurface(platform.window);
     rlCopyFramebuffer(0, 0, CORE.Window.render.width, CORE.Window.render.height, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8, surface->pixels);
     SDL_UpdateWindowSurface(platform.window);
@@ -1272,9 +1269,9 @@ double GetTime(void)
 }
 
 // Open URL with default system browser (if available)
-// NOTE: This function is only safe to use if you control the URL given
+// NOTE: This function is only safe to use if the provided URL is safe
 // A user could craft a malicious string performing another action
-// Only call this function yourself not with user input or make sure to check the string yourself
+// Avoid calling this function with user input non-validated strings
 // REF: https://github.com/raysan5/raylib/issues/686
 void OpenURL(const char *url)
 {
@@ -1290,7 +1287,25 @@ void OpenURL(const char *url)
 // Set internal gamepad mappings
 int SetGamepadMappings(const char *mappings)
 {
-    return SDL_GameControllerAddMapping(mappings);
+    const int mappingsLength = strlen(mappings);
+    char *buffer = (char *)RL_CALLOC(mappingsLength + 1, sizeof(char));
+    memcpy(buffer, mappings, mappingsLength);
+    char *p = strtok(buffer, "\n");
+    bool succeed = true;
+
+    while (p != NULL)
+    {
+        if (SDL_GameControllerAddMapping(p) == -1)
+        {
+            succeed = false;
+        }
+        p = strtok(NULL, "\n");
+    }
+
+    RL_FREE(buffer);
+
+    // To make return value is consistent with the GLFW version.
+    return (succeed)? 1 : 0;
 }
 
 // Set gamepad vibration
@@ -1422,9 +1437,9 @@ void PollInputEvents(void)
 
                 #if defined(USING_VERSION_SDL3)
                     // const char *data;   // The text for SDL_EVENT_DROP_TEXT and the file name for SDL_EVENT_DROP_FILE, NULL for other events
-                    // Event memory is now managed by SDL, so you should not free the data in SDL_EVENT_DROP_FILE,
-                    // and if you want to hold onto the text in SDL_EVENT_TEXT_EDITING and SDL_EVENT_TEXT_INPUT events,
-                    // you should make a copy of it. SDL_TEXTINPUTEVENT_TEXT_SIZE is no longer necessary and has been removed
+                    // Event memory is now managed by SDL, so it should not be freed in SDL_EVENT_DROP_FILE,
+                    // in case data needs to be hold onto the text in SDL_EVENT_TEXT_EDITING and SDL_EVENT_TEXT_INPUT events,
+                    // a copy is required, SDL_TEXTINPUTEVENT_TEXT_SIZE is no longer necessary and has been removed
                     strncpy(CORE.Window.dropFilepaths[CORE.Window.dropFileCount], event.drop.data, MAX_FILEPATH_LENGTH - 1);
                 #else
                     strncpy(CORE.Window.dropFilepaths[CORE.Window.dropFileCount], event.drop.file, MAX_FILEPATH_LENGTH - 1);
@@ -1453,10 +1468,10 @@ void PollInputEvents(void)
             // Window events are also polled (minimized, maximized, close...)
 
             #ifndef USING_VERSION_SDL3
-            // SDL3 states:
             // The SDL_WINDOWEVENT_* events have been moved to top level events, and SDL_WINDOWEVENT has been removed
             // In general, handling this change just means checking for the individual events instead of first checking for SDL_WINDOWEVENT
-            // and then checking for window events. You can compare the event >= SDL_EVENT_WINDOW_FIRST and <= SDL_EVENT_WINDOW_LAST if you need to see whether it's a window event
+            // and then checking for window events; Events >= SDL_EVENT_WINDOW_FIRST and <= SDL_EVENT_WINDOW_LAST can be compared
+            // to see whether it's a window event
             case SDL_WINDOWEVENT:
             {
                 switch (event.window.event)
@@ -1617,7 +1632,7 @@ void PollInputEvents(void)
             case SDL_MOUSEBUTTONDOWN:
             {
                 // NOTE: SDL2 mouse button order is LEFT, MIDDLE, RIGHT, but raylib uses LEFT, RIGHT, MIDDLE like GLFW
-                //       The following conditions align SDL with raylib.h MouseButton enum order
+                // The following conditions align SDL with raylib.h MouseButton enum order
                 int btn = event.button.button - 1;
                 if (btn == 2) btn = 1;
                 else if (btn == 1) btn = 2;
@@ -1630,7 +1645,7 @@ void PollInputEvents(void)
             case SDL_MOUSEBUTTONUP:
             {
                 // NOTE: SDL2 mouse button order is LEFT, MIDDLE, RIGHT, but raylib uses LEFT, RIGHT, MIDDLE like GLFW
-                //       The following conditions align SDL with raylib.h MouseButton enum order
+                // The following conditions align SDL with raylib.h MouseButton enum order
                 int btn = event.button.button - 1;
                 if (btn == 2) btn = 1;
                 else if (btn == 1) btn = 2;

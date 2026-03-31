@@ -54,9 +54,9 @@
         #if defined(__TINYC__)
             #define __declspec(x) __attribute__((x))
         #endif
-        #define RLAPI __declspec(dllexport)     // We are building the library as a Win32 shared library (.dll)
+        #define RLAPI __declspec(dllexport)     // Building the library as a Win32 shared library (.dll)
     #elif defined(USE_LIBTYPE_SHARED)
-        #define RLAPI __declspec(dllimport)     // We are using the library as a Win32 shared library (.dll)
+        #define RLAPI __declspec(dllimport)     // Using the library as a Win32 shared library (.dll)
     #endif
 #endif
 
@@ -191,7 +191,7 @@ RLAPI Matrix GetCameraProjectionMatrix(Camera *camera, float aspect);
                             // IsKeyDown()
                             // IsKeyPressed()
                             // GetFrameTime()
-                            
+
 #include <math.h>           // Required for: fabsf()
 
 //----------------------------------------------------------------------------------
@@ -199,7 +199,7 @@ RLAPI Matrix GetCameraProjectionMatrix(Camera *camera, float aspect);
 //----------------------------------------------------------------------------------
 #define CAMERA_MOVE_SPEED                           5.4f       // Units per second
 #define CAMERA_ROTATION_SPEED                       0.03f
-#define CAMERA_PAN_SPEED                            0.2f
+#define CAMERA_PAN_SPEED                            2.0f
 
 // Camera mouse movement sensitivity
 #define CAMERA_MOUSE_MOVE_SENSITIVITY               0.003f
@@ -364,8 +364,8 @@ void CameraPitch(Camera *camera, float angle, bool lockView, bool rotateAroundTa
 
     if (lockView)
     {
-        // In these camera modes we clamp the Pitch angle
-        // to allow only viewing straight up or down.
+        // In these camera modes, clamp the Pitch angle
+        // to allow only viewing straight up or down
 
         // Clamp view up
         float maxAngleUp = Vector3Angle(up, targetPosition);
@@ -460,7 +460,6 @@ void UpdateCamera(Camera *camera, int mode)
     if (mode == CAMERA_CUSTOM) {}
     else if (mode == CAMERA_ORBITAL)
     {
-        // Orbital can just orbit
         Matrix rotation = MatrixRotate(GetCameraUp(camera), cameraOrbitalSpeed);
         Vector3 view = Vector3Subtract(camera->position, camera->target);
         view = Vector3Transform(view, rotation);

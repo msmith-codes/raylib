@@ -1015,9 +1015,7 @@ RLAPI void rlLoadDrawQuad(void);     // Load and draw a quad
 #ifndef RL_DEFAULT_SHADER_ATTRIB_NAME_BONEWEIGHTS
     #define RL_DEFAULT_SHADER_ATTRIB_NAME_BONEWEIGHTS  "vertexBoneWeights" // Bound by default to shader location: RL_DEFAULT_SHADER_ATTRIB_LOCATION_BONEWEIGHTS
 #endif
-#ifndef RL_DEFAULT_SHADER_UNIFORM_NAME_BONEMATRICES
-    #define RL_DEFAULT_SHADER_UNIFORM_NAME_BONEMATRICES "boneMatrices"   // Bound by default to shader location: RL_DEFAULT_SHADER_ATTRIB_LOCATION_BONEMATRICES
-#endif
+
 #ifndef RL_DEFAULT_SHADER_ATTRIB_NAME_INSTANCETRANSFORM
     #define RL_DEFAULT_SHADER_ATTRIB_NAME_INSTANCETRANSFORM "instanceTransform" // Bound by default to shader location: RL_DEFAULT_SHADER_ATTRIB_LOCATION_INSTANCETRANSFORM
 #endif
@@ -3687,6 +3685,8 @@ void rlUnloadTexture(unsigned int id)
 // NOTE: Only supports GPU mipmap generation
 void rlGenTextureMipmaps(unsigned int id, int width, int height, int format, int *mipmaps)
 {
+    if (!isGpuReady) { TRACELOG(RL_LOG_WARNING, "GL: GPU is not ready to load data, trying to load before InitWindow()?"); return; }
+
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
     glBindTexture(GL_TEXTURE_2D, id);
 

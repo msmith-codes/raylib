@@ -15,7 +15,7 @@ return {
     {
       name = "RAYLIB_VERSION_MINOR",
       type = "INT",
-      value = 1,
+      value = 5,
       description = ""
     },
     {
@@ -27,7 +27,7 @@ return {
     {
       name = "RAYLIB_VERSION",
       type = "STRING",
-      value = "6.1-dev",
+      value = "6.5-dev",
       description = ""
     },
     {
@@ -335,12 +335,6 @@ return {
       type = "UNKNOWN",
       value = "SHADER_LOC_MAP_METALNESS",
       description = ""
-    },
-    {
-      name = "GetMouseRay",
-      type = "UNKNOWN",
-      value = "GetScreenToWorldRay",
-      description = "Compatibility hack for previous raylib versions"
     }
   },
   structs = {
@@ -769,7 +763,7 @@ return {
         {
           type = "Vector2",
           name = "offset",
-          description = "Camera offset (screen space offset from window origin)"
+          description = "Camera offset (screen space offset from window origin, unscaled by DPI, real pixel size)"
         },
         {
           type = "Vector2",
@@ -974,7 +968,7 @@ return {
       description = "Skeleton, animation bones hierarchy",
       fields = {
         {
-          type = "int",
+          type = "unsigned int",
           name = "boneCount",
           description = "Number of bones"
         },
@@ -1051,7 +1045,7 @@ return {
           description = "Animation name"
         },
         {
-          type = "int",
+          type = "unsigned int",
           name = "boneCount",
           description = "Number of bones (per pose)"
         },
@@ -1417,8 +1411,8 @@ return {
       description = "Camera type fallback, defaults to Camera3D"
     },
     {
-      type = "Transform",
-      name = "*ModelAnimPose",
+      type = "Transform *",
+      name = "ModelAnimPose",
       description = "Anim pose, an array of Transform[]"
     }
   },
@@ -3626,7 +3620,7 @@ return {
     },
     {
       name = "IsShaderValid",
-      description = "Check if a shader is valid (loaded on GPU)",
+      description = "Check if shader is valid (loaded on GPU)",
       returnType = "bool",
       params = {
         {type = "Shader", name = "shader"}
@@ -3861,7 +3855,7 @@ return {
     },
     {
       name = "SetConfigFlags",
-      description = "Set up init configuration flags (view FLAGS)",
+      description = "Set init configuration flags (view FLAGS)",
       returnType = "void",
       params = {
         {type = "unsigned int", name = "flags"}
@@ -4022,7 +4016,7 @@ return {
     },
     {
       name = "FileRename",
-      description = "Rename file (if exists)",
+      description = "Rename file (if exists), returns 0 on success",
       returnType = "int",
       params = {
         {type = "const char *", name = "fileName"},
@@ -4031,7 +4025,7 @@ return {
     },
     {
       name = "FileRemove",
-      description = "Remove file (if exists)",
+      description = "Remove file (if exists), returns 0 on success",
       returnType = "int",
       params = {
         {type = "const char *", name = "fileName"}
@@ -4039,7 +4033,7 @@ return {
     },
     {
       name = "FileCopy",
-      description = "Copy file from one path to another, dstPath created if it doesn't exist",
+      description = "Copy file from one path to another, dstPath created if it doesn't exist, returns 0 on success",
       returnType = "int",
       params = {
         {type = "const char *", name = "srcPath"},
@@ -4048,7 +4042,7 @@ return {
     },
     {
       name = "FileMove",
-      description = "Move file from one directory to another, dstPath created if it doesn't exist",
+      description = "Move file from one directory to another, dstPath created if it doesn't exist, returns 0 on success",
       returnType = "int",
       params = {
         {type = "const char *", name = "srcPath"},
@@ -4057,7 +4051,7 @@ return {
     },
     {
       name = "FileTextReplace",
-      description = "Replace text in an existing file",
+      description = "Replace text in an existing file, returns 0 on success",
       returnType = "int",
       params = {
         {type = "const char *", name = "fileName"},
@@ -4067,7 +4061,7 @@ return {
     },
     {
       name = "FileTextFindIndex",
-      description = "Find text in existing file",
+      description = "Find text in existing file, returns -1 if index not found or index otherwise",
       returnType = "int",
       params = {
         {type = "const char *", name = "fileName"},
@@ -4084,7 +4078,7 @@ return {
     },
     {
       name = "DirectoryExists",
-      description = "Check if a directory path exists",
+      description = "Check if directory path exists",
       returnType = "bool",
       params = {
         {type = "const char *", name = "dirPath"}
@@ -4097,6 +4091,14 @@ return {
       params = {
         {type = "const char *", name = "fileName"},
         {type = "const char *", name = "ext"}
+      }
+    },
+    {
+      name = "IsFileHidden",
+      description = "Check if file path (file or directory) is hidden by OS",
+      returnType = "bool",
+      params = {
+        {type = "const char *", name = "filePath"}
       }
     },
     {
@@ -4141,7 +4143,7 @@ return {
     },
     {
       name = "GetDirectoryPath",
-      description = "Get full path for a given fileName with path (uses static string)",
+      description = "Get full path for a provided fileName with path (uses static string)",
       returnType = "const char *",
       params = {
         {type = "const char *", name = "filePath"}
@@ -4149,7 +4151,7 @@ return {
     },
     {
       name = "GetPrevDirectoryPath",
-      description = "Get previous directory path for a given path (uses static string)",
+      description = "Get previous directory path for a provided path (uses static string)",
       returnType = "const char *",
       params = {
         {type = "const char *", name = "dirPath"}
@@ -4175,15 +4177,31 @@ return {
     },
     {
       name = "ChangeDirectory",
-      description = "Change working directory, return true on success",
-      returnType = "bool",
+      description = "Change working directory, returns 0 on success",
+      returnType = "int",
       params = {
         {type = "const char *", name = "dirPath"}
       }
     },
     {
       name = "IsPathFile",
-      description = "Check if a given path is a file or a directory",
+      description = "Check if provided path points to a file",
+      returnType = "bool",
+      params = {
+        {type = "const char *", name = "path"}
+      }
+    },
+    {
+      name = "IsPathDirectory",
+      description = "Check if provided path points to a directory",
+      returnType = "bool",
+      params = {
+        {type = "const char *", name = "path"}
+      }
+    },
+    {
+      name = "IsPathAbsolute",
+      description = "Check if provided path is an absolute path",
       returnType = "bool",
       params = {
         {type = "const char *", name = "path"}
@@ -4207,7 +4225,7 @@ return {
     },
     {
       name = "LoadDirectoryFilesEx",
-      description = "Load directory filepaths with extension filtering and subdir scan; some filters available: `*.*`,`FILES*`,`DIRS*`",
+      description = "Load directory filepaths with extension filtering and subdir scan; some filters available: '*.*','FILES*','DIRS*'",
       returnType = "FilePathList",
       params = {
         {type = "const char *", name = "basePath"},
@@ -4225,7 +4243,7 @@ return {
     },
     {
       name = "IsFileDropped",
-      description = "Check if a file has been dropped into window",
+      description = "Check if file has been dropped into window",
       returnType = "bool"
     },
     {
@@ -4395,7 +4413,7 @@ return {
     },
     {
       name = "IsKeyPressed",
-      description = "Check if a key has been pressed once",
+      description = "Check if key has been pressed once",
       returnType = "bool",
       params = {
         {type = "int", name = "key"}
@@ -4403,7 +4421,7 @@ return {
     },
     {
       name = "IsKeyPressedRepeat",
-      description = "Check if a key has been pressed again",
+      description = "Check if key has been pressed again",
       returnType = "bool",
       params = {
         {type = "int", name = "key"}
@@ -4411,7 +4429,7 @@ return {
     },
     {
       name = "IsKeyDown",
-      description = "Check if a key is being pressed",
+      description = "Check if key is being pressed",
       returnType = "bool",
       params = {
         {type = "int", name = "key"}
@@ -4419,7 +4437,7 @@ return {
     },
     {
       name = "IsKeyReleased",
-      description = "Check if a key has been released once",
+      description = "Check if key has been released once",
       returnType = "bool",
       params = {
         {type = "int", name = "key"}
@@ -4427,7 +4445,7 @@ return {
     },
     {
       name = "IsKeyUp",
-      description = "Check if a key is NOT being pressed",
+      description = "Check if key is NOT being pressed",
       returnType = "bool",
       params = {
         {type = "int", name = "key"}
@@ -4461,7 +4479,7 @@ return {
     },
     {
       name = "IsGamepadAvailable",
-      description = "Check if a gamepad is available",
+      description = "Check if gamepad is available",
       returnType = "bool",
       params = {
         {type = "int", name = "gamepad"}
@@ -4477,7 +4495,7 @@ return {
     },
     {
       name = "IsGamepadButtonPressed",
-      description = "Check if a gamepad button has been pressed once",
+      description = "Check if gamepad button has been pressed once",
       returnType = "bool",
       params = {
         {type = "int", name = "gamepad"},
@@ -4486,7 +4504,7 @@ return {
     },
     {
       name = "IsGamepadButtonDown",
-      description = "Check if a gamepad button is being pressed",
+      description = "Check if gamepad button is being pressed",
       returnType = "bool",
       params = {
         {type = "int", name = "gamepad"},
@@ -4495,7 +4513,7 @@ return {
     },
     {
       name = "IsGamepadButtonReleased",
-      description = "Check if a gamepad button has been released once",
+      description = "Check if gamepad button has been released once",
       returnType = "bool",
       params = {
         {type = "int", name = "gamepad"},
@@ -4504,7 +4522,7 @@ return {
     },
     {
       name = "IsGamepadButtonUp",
-      description = "Check if a gamepad button is NOT being pressed",
+      description = "Check if gamepad button is NOT being pressed",
       returnType = "bool",
       params = {
         {type = "int", name = "gamepad"},
@@ -4554,7 +4572,7 @@ return {
     },
     {
       name = "IsMouseButtonPressed",
-      description = "Check if a mouse button has been pressed once",
+      description = "Check if mouse button has been pressed once",
       returnType = "bool",
       params = {
         {type = "int", name = "button"}
@@ -4562,7 +4580,7 @@ return {
     },
     {
       name = "IsMouseButtonDown",
-      description = "Check if a mouse button is being pressed",
+      description = "Check if mouse button is being pressed",
       returnType = "bool",
       params = {
         {type = "int", name = "button"}
@@ -4570,7 +4588,7 @@ return {
     },
     {
       name = "IsMouseButtonReleased",
-      description = "Check if a mouse button has been released once",
+      description = "Check if mouse button has been released once",
       returnType = "bool",
       params = {
         {type = "int", name = "button"}
@@ -4578,7 +4596,7 @@ return {
     },
     {
       name = "IsMouseButtonUp",
-      description = "Check if a mouse button is NOT being pressed",
+      description = "Check if mouse button is NOT being pressed",
       returnType = "bool",
       params = {
         {type = "int", name = "button"}
@@ -4669,7 +4687,7 @@ return {
     },
     {
       name = "GetTouchPointId",
-      description = "Get touch point identifier for given index",
+      description = "Get touch point identifier for provided index",
       returnType = "int",
       params = {
         {type = "int", name = "index"}
@@ -4690,7 +4708,7 @@ return {
     },
     {
       name = "IsGestureDetected",
-      description = "Check if a gesture has been detected",
+      description = "Check if gesture has been detected",
       returnType = "bool",
       params = {
         {type = "unsigned int", name = "gesture"}
@@ -4752,7 +4770,7 @@ return {
       returnType = "void",
       params = {
         {type = "Texture2D", name = "texture"},
-        {type = "Rectangle", name = "source"}
+        {type = "Rectangle", name = "rec"}
       }
     },
     {
@@ -4851,155 +4869,69 @@ return {
       }
     },
     {
-      name = "DrawCircle",
-      description = "Draw a color-filled circle",
+      name = "DrawTriangle",
+      description = "Draw a color-filled triangle, counter-clockwise vertex order",
       returnType = "void",
       params = {
-        {type = "int", name = "centerX"},
-        {type = "int", name = "centerY"},
-        {type = "float", name = "radius"},
+        {type = "Vector2", name = "v1"},
+        {type = "Vector2", name = "v2"},
+        {type = "Vector2", name = "v3"},
         {type = "Color", name = "color"}
       }
     },
     {
-      name = "DrawCircleV",
-      description = "Draw a color-filled circle (Vector version)",
+      name = "DrawTriangleGradient",
+      description = "Draw triangle with interpolated colors, counter-clockwise vertex/color order",
       returnType = "void",
       params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "radius"},
+        {type = "Vector2", name = "v1"},
+        {type = "Vector2", name = "v2"},
+        {type = "Vector2", name = "v3"},
+        {type = "Color", name = "c1"},
+        {type = "Color", name = "c2"},
+        {type = "Color", name = "c3"}
+      }
+    },
+    {
+      name = "DrawTriangleLines",
+      description = "Draw triangle outline, counter-clockwise vertex order",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "v1"},
+        {type = "Vector2", name = "v2"},
+        {type = "Vector2", name = "v3"},
         {type = "Color", name = "color"}
       }
     },
     {
-      name = "DrawCircleGradient",
-      description = "Draw a gradient-filled circle",
+      name = "DrawTriangleLinesEx",
+      description = "Draw triangle outline with line thickness, counter-clockwise vertex order",
       returnType = "void",
       params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "radius"},
-        {type = "Color", name = "inner"},
-        {type = "Color", name = "outer"}
-      }
-    },
-    {
-      name = "DrawCircleSector",
-      description = "Draw a piece of a circle",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "radius"},
-        {type = "float", name = "startAngle"},
-        {type = "float", name = "endAngle"},
-        {type = "int", name = "segments"},
+        {type = "Vector2", name = "v1"},
+        {type = "Vector2", name = "v2"},
+        {type = "Vector2", name = "v3"},
+        {type = "float", name = "thick"},
         {type = "Color", name = "color"}
       }
     },
     {
-      name = "DrawCircleSectorLines",
-      description = "Draw circle sector outline",
+      name = "DrawTriangleFan",
+      description = "Draw a triangle fan defined by points (first vertex is the center)",
       returnType = "void",
       params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "radius"},
-        {type = "float", name = "startAngle"},
-        {type = "float", name = "endAngle"},
-        {type = "int", name = "segments"},
+        {type = "const Vector2 *", name = "points"},
+        {type = "int", name = "pointCount"},
         {type = "Color", name = "color"}
       }
     },
     {
-      name = "DrawCircleLines",
-      description = "Draw circle outline",
+      name = "DrawTriangleStrip",
+      description = "Draw a triangle strip defined by points",
       returnType = "void",
       params = {
-        {type = "int", name = "centerX"},
-        {type = "int", name = "centerY"},
-        {type = "float", name = "radius"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawCircleLinesV",
-      description = "Draw circle outline (Vector version)",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "radius"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawEllipse",
-      description = "Draw ellipse",
-      returnType = "void",
-      params = {
-        {type = "int", name = "centerX"},
-        {type = "int", name = "centerY"},
-        {type = "float", name = "radiusH"},
-        {type = "float", name = "radiusV"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawEllipseV",
-      description = "Draw ellipse (Vector version)",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "radiusH"},
-        {type = "float", name = "radiusV"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawEllipseLines",
-      description = "Draw ellipse outline",
-      returnType = "void",
-      params = {
-        {type = "int", name = "centerX"},
-        {type = "int", name = "centerY"},
-        {type = "float", name = "radiusH"},
-        {type = "float", name = "radiusV"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawEllipseLinesV",
-      description = "Draw ellipse outline (Vector version)",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "radiusH"},
-        {type = "float", name = "radiusV"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawRing",
-      description = "Draw ring",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "innerRadius"},
-        {type = "float", name = "outerRadius"},
-        {type = "float", name = "startAngle"},
-        {type = "float", name = "endAngle"},
-        {type = "int", name = "segments"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawRingLines",
-      description = "Draw ring outline",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "center"},
-        {type = "float", name = "innerRadius"},
-        {type = "float", name = "outerRadius"},
-        {type = "float", name = "startAngle"},
-        {type = "float", name = "endAngle"},
-        {type = "int", name = "segments"},
+        {type = "const Vector2 *", name = "points"},
+        {type = "int", name = "pointCount"},
         {type = "Color", name = "color"}
       }
     },
@@ -5073,14 +5005,14 @@ return {
     },
     {
       name = "DrawRectangleGradientEx",
-      description = "Draw a gradient-filled rectangle with custom vertex colors",
+      description = "Draw a gradient-filled rectangle with custom vertex colors, counter-clockwise color order",
       returnType = "void",
       params = {
         {type = "Rectangle", name = "rec"},
-        {type = "Color", name = "topLeft"},
-        {type = "Color", name = "bottomLeft"},
-        {type = "Color", name = "bottomRight"},
-        {type = "Color", name = "topRight"}
+        {type = "Color", name = "col1"},
+        {type = "Color", name = "col2"},
+        {type = "Color", name = "col3"},
+        {type = "Color", name = "col4"}
       }
     },
     {
@@ -5097,11 +5029,11 @@ return {
     },
     {
       name = "DrawRectangleLinesEx",
-      description = "Draw rectangle outline with extended parameters",
+      description = "Draw rectangle outline with line thickness",
       returnType = "void",
       params = {
         {type = "Rectangle", name = "rec"},
-        {type = "float", name = "lineThick"},
+        {type = "float", name = "thick"},
         {type = "Color", name = "color"}
       }
     },
@@ -5129,68 +5061,13 @@ return {
     },
     {
       name = "DrawRectangleRoundedLinesEx",
-      description = "Draw rectangle lines with rounded edges outline",
+      description = "Draw rectangle lines with rounded edges outline and line thickness",
       returnType = "void",
       params = {
         {type = "Rectangle", name = "rec"},
         {type = "float", name = "roundness"},
         {type = "int", name = "segments"},
-        {type = "float", name = "lineThick"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawTriangle",
-      description = "Draw a color-filled triangle (vertex in counter-clockwise order!)",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "v1"},
-        {type = "Vector2", name = "v2"},
-        {type = "Vector2", name = "v3"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawTriangleGradient",
-      description = "Draw triangle with interpolated colors (vertex in counter-clockwise order!)",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "v1"},
-        {type = "Vector2", name = "v2"},
-        {type = "Vector2", name = "v3"},
-        {type = "Color", name = "c1"},
-        {type = "Color", name = "c2"},
-        {type = "Color", name = "c3"}
-      }
-    },
-    {
-      name = "DrawTriangleLines",
-      description = "Draw triangle outline (vertex in counter-clockwise order!)",
-      returnType = "void",
-      params = {
-        {type = "Vector2", name = "v1"},
-        {type = "Vector2", name = "v2"},
-        {type = "Vector2", name = "v3"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawTriangleFan",
-      description = "Draw a triangle fan defined by points (first vertex is the center)",
-      returnType = "void",
-      params = {
-        {type = "const Vector2 *", name = "points"},
-        {type = "int", name = "pointCount"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "DrawTriangleStrip",
-      description = "Draw a triangle strip defined by points",
-      returnType = "void",
-      params = {
-        {type = "const Vector2 *", name = "points"},
-        {type = "int", name = "pointCount"},
+        {type = "float", name = "thick"},
         {type = "Color", name = "color"}
       }
     },
@@ -5220,14 +5097,219 @@ return {
     },
     {
       name = "DrawPolyLinesEx",
-      description = "Draw a polygon outline of n sides with extended parameters",
+      description = "Draw a polygon outline of n sides with line thickness",
       returnType = "void",
       params = {
         {type = "Vector2", name = "center"},
         {type = "int", name = "sides"},
         {type = "float", name = "radius"},
         {type = "float", name = "rotation"},
-        {type = "float", name = "lineThick"},
+        {type = "float", name = "thick"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircle",
+      description = "Draw a color-filled circle",
+      returnType = "void",
+      params = {
+        {type = "int", name = "centerX"},
+        {type = "int", name = "centerY"},
+        {type = "float", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircleV",
+      description = "Draw a color-filled circle (Vector version)",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircleGradient",
+      description = "Draw a gradient-filled circle",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "Color", name = "inner"},
+        {type = "Color", name = "outer"}
+      }
+    },
+    {
+      name = "DrawCircleSector",
+      description = "Draw a piece of a circle",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "float", name = "startAngle"},
+        {type = "float", name = "endAngle"},
+        {type = "int", name = "segments"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircleSectorLines",
+      description = "Draw circle sector outline",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "float", name = "startAngle"},
+        {type = "float", name = "endAngle"},
+        {type = "int", name = "segments"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircleSectorLinesEx",
+      description = "Draw circle sector outline with thickness",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "float", name = "startAngle"},
+        {type = "float", name = "endAngle"},
+        {type = "int", name = "segments"},
+        {type = "float", name = "thick"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircleLines",
+      description = "Draw circle outline",
+      returnType = "void",
+      params = {
+        {type = "int", name = "centerX"},
+        {type = "int", name = "centerY"},
+        {type = "float", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircleLinesV",
+      description = "Draw circle outline (Vector version)",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawCircleLinesEx",
+      description = "Draw circle outline with line thickness",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "float", name = "thick"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawEllipse",
+      description = "Draw ellipse",
+      returnType = "void",
+      params = {
+        {type = "int", name = "centerX"},
+        {type = "int", name = "centerY"},
+        {type = "float", name = "radiusH"},
+        {type = "float", name = "radiusV"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawEllipseV",
+      description = "Draw ellipse (Vector version)",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radiusH"},
+        {type = "float", name = "radiusV"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawEllipseLines",
+      description = "Draw ellipse outline",
+      returnType = "void",
+      params = {
+        {type = "int", name = "centerX"},
+        {type = "int", name = "centerY"},
+        {type = "float", name = "radiusH"},
+        {type = "float", name = "radiusV"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawEllipseLinesV",
+      description = "Draw ellipse outline (Vector version)",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radiusH"},
+        {type = "float", name = "radiusV"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawEllipseLinesEx",
+      description = "Draw ellipse outline with line thickness",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radiusH"},
+        {type = "float", name = "radiusV"},
+        {type = "float", name = "thick"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawRing",
+      description = "Draw ring",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "innerRadius"},
+        {type = "float", name = "outerRadius"},
+        {type = "float", name = "startAngle"},
+        {type = "float", name = "endAngle"},
+        {type = "int", name = "segments"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawRingLines",
+      description = "Draw ring outline",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "innerRadius"},
+        {type = "float", name = "outerRadius"},
+        {type = "float", name = "startAngle"},
+        {type = "float", name = "endAngle"},
+        {type = "int", name = "segments"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "DrawRingLinesEx",
+      description = "Draw ring outline with line thickness",
+      returnType = "void",
+      params = {
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "innerRadius"},
+        {type = "float", name = "outerRadius"},
+        {type = "float", name = "startAngle"},
+        {type = "float", name = "endAngle"},
+        {type = "int", name = "segments"},
+        {type = "float", name = "thick"},
         {type = "Color", name = "color"}
       }
     },
@@ -6058,7 +6140,7 @@ return {
     },
     {
       name = "ImageClearBackground",
-      description = "Clear image background with given color",
+      description = "Clear image background with provided color",
       returnType = "void",
       params = {
         {type = "Image *", name = "dst"},
@@ -6123,106 +6205,13 @@ return {
       }
     },
     {
-      name = "ImageDrawCircle",
-      description = "Draw a filled circle within an image",
+      name = "ImageDrawLineStrip",
+      description = "Draw a lines sequence within an image",
       returnType = "void",
       params = {
         {type = "Image *", name = "dst"},
-        {type = "int", name = "centerX"},
-        {type = "int", name = "centerY"},
-        {type = "int", name = "radius"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawCircleV",
-      description = "Draw a filled circle within an image (Vector version)",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "Vector2", name = "center"},
-        {type = "int", name = "radius"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawCircleLines",
-      description = "Draw circle outline within an image",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "int", name = "centerX"},
-        {type = "int", name = "centerY"},
-        {type = "int", name = "radius"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawCircleLinesV",
-      description = "Draw circle outline within an image (Vector version)",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "Vector2", name = "center"},
-        {type = "int", name = "radius"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawRectangle",
-      description = "Draw rectangle within an image",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "int", name = "posX"},
-        {type = "int", name = "posY"},
-        {type = "int", name = "width"},
-        {type = "int", name = "height"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawRectangleV",
-      description = "Draw rectangle within an image (Vector version)",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "Vector2", name = "position"},
-        {type = "Vector2", name = "size"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawRectangleRec",
-      description = "Draw rectangle within an image",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "Rectangle", name = "rec"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawRectangleLines",
-      description = "Draw rectangle lines within an image",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "int", name = "posX"},
-        {type = "int", name = "posY"},
-        {type = "int", name = "width"},
-        {type = "int", name = "height"},
-        {type = "Color", name = "color"}
-      }
-    },
-    {
-      name = "ImageDrawRectangleLinesEx",
-      description = "Draw rectangle lines within an image with extended parameters",
-      returnType = "void",
-      params = {
-        {type = "Image *", name = "dst"},
-        {type = "Rectangle", name = "rec"},
-        {type = "int", name = "thick"},
+        {type = "const Vector2 *", name = "points"},
+        {type = "int", name = "pointCount"},
         {type = "Color", name = "color"}
       }
     },
@@ -6287,14 +6276,194 @@ return {
       }
     },
     {
-      name = "ImageDraw",
-      description = "Draw a source image within a destination image (tint applied to source)",
+      name = "ImageDrawRectangle",
+      description = "Draw rectangle within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "int", name = "posX"},
+        {type = "int", name = "posY"},
+        {type = "int", name = "width"},
+        {type = "int", name = "height"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawRectangleV",
+      description = "Draw rectangle within an image (Vector version)",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Vector2", name = "position"},
+        {type = "Vector2", name = "size"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawRectangleRec",
+      description = "Draw rectangle within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Rectangle", name = "rec"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawRectanglePro",
+      description = "Draw a color-filled rectangle with pro parameters within and image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Rectangle", name = "rec"},
+        {type = "Vector2", name = "origin"},
+        {type = "float", name = "rotation"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawRectangleLines",
+      description = "Draw rectangle lines within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "int", name = "posX"},
+        {type = "int", name = "posY"},
+        {type = "int", name = "width"},
+        {type = "int", name = "height"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawRectangleLinesEx",
+      description = "Draw rectangle lines within an image with line thickness",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Rectangle", name = "rec"},
+        {type = "int", name = "thick"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawRectangleGradientEx",
+      description = "Draw rectangle with gradient colors within an image, counter-clockwise color order",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Rectangle", name = "rec"},
+        {type = "Color", name = "col1"},
+        {type = "Color", name = "col2"},
+        {type = "Color", name = "col3"},
+        {type = "Color", name = "col4"}
+      }
+    },
+    {
+      name = "ImageDrawCircle",
+      description = "Draw a filled circle within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "int", name = "centerX"},
+        {type = "int", name = "centerY"},
+        {type = "int", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawCircleV",
+      description = "Draw a filled circle within an image (Vector version)",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Vector2", name = "center"},
+        {type = "int", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawCircleLines",
+      description = "Draw circle outline within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "int", name = "centerX"},
+        {type = "int", name = "centerY"},
+        {type = "int", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawCircleLinesV",
+      description = "Draw circle outline within an image (Vector version)",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Vector2", name = "center"},
+        {type = "int", name = "radius"},
+        {type = "Color", name = "color"}
+      }
+    },
+    {
+      name = "ImageDrawCircleGradient",
+      description = "Draw a gradient-filled circle within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Vector2", name = "center"},
+        {type = "float", name = "radius"},
+        {type = "Color", name = "inner"},
+        {type = "Color", name = "outer"}
+      }
+    },
+    {
+      name = "ImageDrawImage",
+      description = "Draw an image within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Image", name = "src"},
+        {type = "int", name = "posX"},
+        {type = "int", name = "posY"},
+        {type = "Color", name = "tint"}
+      }
+    },
+    {
+      name = "ImageDrawImageEx",
+      description = "Draw an image with scaling and rotation within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Image", name = "src"},
+        {type = "Vector2", name = "position"},
+        {type = "float", name = "rotation"},
+        {type = "float", name = "scale"},
+        {type = "Color", name = "tint"}
+      }
+    },
+    {
+      name = "ImageDrawImageRec",
+      description = "Draw a part of an image defined by a rectangle within an image",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Image", name = "src"},
+        {type = "Rectangle", name = "srcRec"},
+        {type = "Vector2", name = "position"},
+        {type = "Color", name = "tint"}
+      }
+    },
+    {
+      name = "ImageDrawImagePro",
+      description = "Draw a part of an image defined by a rectangle into destination rectangle, with scaling and rotation, within an image",
       returnType = "void",
       params = {
         {type = "Image *", name = "dst"},
         {type = "Image", name = "src"},
         {type = "Rectangle", name = "srcRec"},
         {type = "Rectangle", name = "dstRec"},
+        {type = "Vector2", name = "origin"},
+        {type = "float", name = "rotation"},
         {type = "Color", name = "tint"}
       }
     },
@@ -6320,6 +6489,22 @@ return {
         {type = "Font", name = "font"},
         {type = "const char *", name = "text"},
         {type = "Vector2", name = "position"},
+        {type = "float", name = "fontSize"},
+        {type = "float", name = "spacing"},
+        {type = "Color", name = "tint"}
+      }
+    },
+    {
+      name = "ImageDrawTextPro",
+      description = "Draw text using Font and pro parameters (rotation)",
+      returnType = "void",
+      params = {
+        {type = "Image *", name = "dst"},
+        {type = "Font", name = "font"},
+        {type = "const char *", name = "text"},
+        {type = "Vector2", name = "position"},
+        {type = "Vector2", name = "origin"},
+        {type = "float", name = "rotation"},
         {type = "float", name = "fontSize"},
         {type = "float", name = "spacing"},
         {type = "Color", name = "tint"}
@@ -6360,8 +6545,18 @@ return {
       }
     },
     {
+      name = "LoadRenderTextureEx",
+      description = "Load texture for rendering (framebuffer), with specific format",
+      returnType = "RenderTexture2D",
+      params = {
+        {type = "int", name = "width"},
+        {type = "int", name = "height"},
+        {type = "int", name = "format"}
+      }
+    },
+    {
       name = "IsTextureValid",
-      description = "Check if a texture is valid (loaded in GPU)",
+      description = "Check if texture is valid (loaded in GPU)",
       returnType = "bool",
       params = {
         {type = "Texture2D", name = "texture"}
@@ -6377,7 +6572,7 @@ return {
     },
     {
       name = "IsRenderTextureValid",
-      description = "Check if a render texture is valid (loaded in GPU)",
+      description = "Check if render texture is valid (loaded in GPU)",
       returnType = "bool",
       params = {
         {type = "RenderTexture2D", name = "target"}
@@ -6459,7 +6654,7 @@ return {
     },
     {
       name = "DrawTextureEx",
-      description = "Draw a Texture2D with extended parameters",
+      description = "Draw a Texture2D with rotation and scale",
       returnType = "void",
       params = {
         {type = "Texture2D", name = "texture"},
@@ -6475,19 +6670,19 @@ return {
       returnType = "void",
       params = {
         {type = "Texture2D", name = "texture"},
-        {type = "Rectangle", name = "source"},
+        {type = "Rectangle", name = "rec"},
         {type = "Vector2", name = "position"},
         {type = "Color", name = "tint"}
       }
     },
     {
       name = "DrawTexturePro",
-      description = "Draw a part of a texture defined by a rectangle with 'pro' parameters",
+      description = "Draw a part of a texture defined by a source rectangle to destination rectangle, with scaling and rotation",
       returnType = "void",
       params = {
         {type = "Texture2D", name = "texture"},
-        {type = "Rectangle", name = "source"},
-        {type = "Rectangle", name = "dest"},
+        {type = "Rectangle", name = "srcrec"},
+        {type = "Rectangle", name = "dstrec"},
         {type = "Vector2", name = "origin"},
         {type = "float", name = "rotation"},
         {type = "Color", name = "tint"}
@@ -6500,7 +6695,7 @@ return {
       params = {
         {type = "Texture2D", name = "texture"},
         {type = "NPatchInfo", name = "nPatchInfo"},
-        {type = "Rectangle", name = "dest"},
+        {type = "Rectangle", name = "dstrec"},
         {type = "Vector2", name = "origin"},
         {type = "float", name = "rotation"},
         {type = "Color", name = "tint"}
@@ -6635,7 +6830,7 @@ return {
       description = "Get Color from a source pixel pointer of certain format",
       returnType = "Color",
       params = {
-        {type = "void *", name = "srcPtr"},
+        {type = "const void *", name = "srcPtr"},
         {type = "int", name = "format"}
       }
     },
@@ -6674,7 +6869,7 @@ return {
     },
     {
       name = "LoadFontEx",
-      description = "Load font from file with extended parameters, use NULL for codepoints and 0 for codepointCount to load the default character set, font size is provided in pixels height",
+      description = "Load font from file with defined codepoints and generation size, use NULL for codepoints and 0 for codepointCount to load the default character set, font size is provided in pixels height",
       returnType = "Font",
       params = {
         {type = "const char *", name = "fileName"},
@@ -6708,7 +6903,7 @@ return {
     },
     {
       name = "IsFontValid",
-      description = "Check if a font is valid (font data loaded, WARNING: GPU texture not checked)",
+      description = "Check if font is valid (font data loaded, WARNING: GPU texture not checked)",
       returnType = "bool",
       params = {
         {type = "Font", name = "font"}
@@ -7258,7 +7453,7 @@ return {
     },
     {
       name = "DrawTriangle3D",
-      description = "Draw a color-filled triangle (vertex in counter-clockwise order!)",
+      description = "Draw a color-filled triangle, counter-clockwise vertex order",
       returnType = "void",
       params = {
         {type = "Vector3", name = "v1"},
@@ -7333,7 +7528,7 @@ return {
     },
     {
       name = "DrawSphereEx",
-      description = "Draw sphere with extended parameters",
+      description = "Draw sphere with defined rings and slices",
       returnType = "void",
       params = {
         {type = "Vector3", name = "centerPos"},
@@ -7364,7 +7559,7 @@ return {
         {type = "float", name = "radiusTop"},
         {type = "float", name = "radiusBottom"},
         {type = "float", name = "height"},
-        {type = "int", name = "slices"},
+        {type = "int", name = "sides"},
         {type = "Color", name = "color"}
       }
     },
@@ -7390,7 +7585,7 @@ return {
         {type = "float", name = "radiusTop"},
         {type = "float", name = "radiusBottom"},
         {type = "float", name = "height"},
-        {type = "int", name = "slices"},
+        {type = "int", name = "sides"},
         {type = "Color", name = "color"}
       }
     },
@@ -7403,7 +7598,7 @@ return {
         {type = "Vector3", name = "endPos"},
         {type = "float", name = "startRadius"},
         {type = "float", name = "endRadius"},
-        {type = "int", name = "slices"},
+        {type = "int", name = "sides"},
         {type = "Color", name = "color"}
       }
     },
@@ -7479,7 +7674,7 @@ return {
     },
     {
       name = "IsModelValid",
-      description = "Check if a model is valid (loaded in GPU, VAO/VBOs)",
+      description = "Check if model is valid (loaded in GPU, VAO/VBOs)",
       returnType = "bool",
       params = {
         {type = "Model", name = "model"}
@@ -7514,7 +7709,7 @@ return {
     },
     {
       name = "DrawModelEx",
-      description = "Draw a model with extended parameters",
+      description = "Draw a model with custom transform",
       returnType = "void",
       params = {
         {type = "Model", name = "model"},
@@ -7538,7 +7733,7 @@ return {
     },
     {
       name = "DrawModelWiresEx",
-      description = "Draw a model wires (with texture if set) with extended parameters",
+      description = "Draw a model wires with custom transform",
       returnType = "void",
       params = {
         {type = "Model", name = "model"},
@@ -7572,12 +7767,12 @@ return {
     },
     {
       name = "DrawBillboardRec",
-      description = "Draw a billboard texture defined by source",
+      description = "Draw a billboard texture defined by rectangle",
       returnType = "void",
       params = {
         {type = "Camera", name = "camera"},
         {type = "Texture2D", name = "texture"},
-        {type = "Rectangle", name = "source"},
+        {type = "Rectangle", name = "rec"},
         {type = "Vector3", name = "position"},
         {type = "Vector2", name = "size"},
         {type = "Color", name = "tint"}
@@ -7585,12 +7780,12 @@ return {
     },
     {
       name = "DrawBillboardPro",
-      description = "Draw a billboard texture defined by source and rotation",
+      description = "Draw a billboard texture defined by source rectangle with scaling and rotation",
       returnType = "void",
       params = {
         {type = "Camera", name = "camera"},
         {type = "Texture2D", name = "texture"},
-        {type = "Rectangle", name = "source"},
+        {type = "Rectangle", name = "rec"},
         {type = "Vector3", name = "position"},
         {type = "Vector3", name = "up"},
         {type = "Vector2", name = "size"},
@@ -7809,7 +8004,7 @@ return {
     },
     {
       name = "IsMaterialValid",
-      description = "Check if a material is valid (shader assigned, map textures loaded in GPU)",
+      description = "Check if material is valid (shader assigned, map textures loaded in GPU)",
       returnType = "bool",
       params = {
         {type = "Material", name = "material"}
@@ -8055,7 +8250,7 @@ return {
     },
     {
       name = "IsSoundValid",
-      description = "Check if a sound is valid (data loaded and buffers initialized)",
+      description = "Check if sound is valid (data loaded and buffers initialized)",
       returnType = "bool",
       params = {
         {type = "Sound", name = "sound"}
@@ -8147,7 +8342,7 @@ return {
     },
     {
       name = "IsSoundPlaying",
-      description = "Check if a sound is currently playing",
+      description = "Check if sound is currently playing",
       returnType = "bool",
       params = {
         {type = "Sound", name = "sound"}
@@ -8245,7 +8440,7 @@ return {
     },
     {
       name = "IsMusicValid",
-      description = "Check if a music stream is valid (context and buffers initialized)",
+      description = "Check if music stream is valid (context and buffers initialized)",
       returnType = "bool",
       params = {
         {type = "Music", name = "music"}

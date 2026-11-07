@@ -16,11 +16,12 @@
 ********************************************************************************************/
 
 #include "raylib.h"
-#include <math.h>
-#include <stdio.h>
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
+
+#include <math.h>
+#include <stdio.h>
 
 #define MAX_PIE_SLICES  10       // Max pie slices
 
@@ -39,11 +40,8 @@ int main(void)
     int sliceCount = 7;
     float donutInnerRadius = 25.0f;
     float values[MAX_PIE_SLICES] = { 300.0f, 100.0f, 450.0f, 350.0f, 600.0f, 380.0f, 750.0f }; // Initial slice values
-    char labels[MAX_PIE_SLICES][32] = { 0 };
     bool editingLabel[MAX_PIE_SLICES] = { 0 };
-
-    for (int i = 0; i < MAX_PIE_SLICES; i++)
-        snprintf(labels[i], 32, "Slice %02i", i + 1);
+    char labels[MAX_PIE_SLICES][32] = { 0 }; // Slice label texts, editable
 
     bool showValues = true;
     bool showPercentages = false;
@@ -59,7 +57,7 @@ int main(void)
 
     // UI Panel top-left anchor
     const Vector2 panelPos = {
-        (float)screenWidth  - panelMargin - panelWidth,
+        (float)screenWidth - panelMargin - panelWidth,
         (float)panelMargin
     };
 
@@ -72,11 +70,14 @@ int main(void)
 
     // Pie chart geometry
     const Rectangle canvas = { 0, 0, panelPos.x, (float)screenHeight };
-    const Vector2 center = { canvas.width/2.0f, canvas.height/2.0f};
+    const Vector2 center = { canvas.width/2.0f, canvas.height/2.0f };
     const float radius = 205.0f;
 
     // Total value for percentage calculations
     float totalValue = 0.0f;
+
+    // Initialize slice labels
+    for (int i = 0; i < MAX_PIE_SLICES; i++) snprintf(labels[i], 32, "Slice %02i", i + 1);
 
     SetTargetFPS(60);
     //--------------------------------------------------------------------------------------
@@ -93,13 +94,14 @@ int main(void)
         // Check for mouse hover over slices
         hoveredSlice = -1; // Reset hovered slice
         Vector2 mousePos = GetMousePosition();
+
         if (CheckCollisionPointRec(mousePos, canvas)) // Only check if mouse is inside the canvas
         {
             float dx = mousePos.x - center.x;
             float dy = mousePos.y - center.y;
             float distance = sqrtf(dx*dx + dy*dy);
 
-            if (distance <= radius) // Inside the pie radius
+            if ((distance <= radius) && (!showDonut || distance >= donutInnerRadius)) // Inside the pie, outside the donut hole
             {
                 float angle = atan2f(dy, dx)*RAD2DEG;
                 if (angle < 0) angle += 360;
@@ -136,11 +138,12 @@ int main(void)
                 Color color = ColorFromHSV((float)i/sliceCount*360.0f, 0.75f, 0.9f);
                 float currentRadius = radius;
 
-                // Make the hovered slice pop out by adding 5 pixels to its radius
+                // Make the hovered slice pop out by adding 20 pixels to its radius
                 if (i == hoveredSlice) currentRadius += 20.0f;
 
-                // Draw the pie slice using raylib's DrawCircleSector function
-                DrawCircleSector(center, currentRadius, startAngle, startAngle + sweepAngle, 120, color);
+                // Draw the pie slice (DrawRing() for donut mode)
+                if (showDonut) DrawRing(center, donutInnerRadius, currentRadius, startAngle, startAngle + sweepAngle, 120, color);
+                else DrawCircleSector(center, currentRadius, startAngle, startAngle + sweepAngle, 120, color);
 
                 // Draw the label for the current slice
                 if (values[i] > 0)
@@ -152,15 +155,11 @@ int main(void)
                     else labelText[0] = '\0';
 
                     Vector2 textSize = MeasureTextEx(GetFontDefault(), labelText, 20, 1);
-                    float labelRadius = radius*0.7f;
+                    float labelRadius = showDonut? (donutInnerRadius + radius)/2.0f : radius*0.7f;
                     Vector2 labelPos = { center.x + cosf(midAngle*DEG2RAD)*labelRadius - textSize.x/2.0f,
                         center.y + sinf(midAngle*DEG2RAD)*labelRadius - textSize.y/2.0f };
                     DrawText(labelText, (int)labelPos.x, (int)labelPos.y, 20, WHITE);
                 }
-
-                // Draw inner circle to create donut effect
-                // TODO: This is a hacky solution, better use DrawRing()
-                if (showDonut) DrawCircleV(center, donutInnerRadius, RAYWHITE);
 
                 startAngle += sweepAngle;
             }
@@ -174,9 +173,9 @@ int main(void)
             GuiCheckBox((Rectangle){ panelPos.x + 20, (float)panelPos.y + 12 + 70, 20, 20 }, "Show Percentages", &showPercentages);
             GuiCheckBox((Rectangle){ panelPos.x + 20, (float)panelPos.y + 12 + 100, 20, 20 }, "Make Donut", &showDonut);
 
-            if (showDonut) GuiDisable();
+            if (!showDonut) GuiDisable();
             GuiSliderBar((Rectangle){ panelPos.x + 80, (float)panelPos.y + 12 + 130, panelRect.width - 100, 30 },
-                            "Inner Radius", NULL, &donutInnerRadius, 5.0f, radius - 10.0f);
+                "Inner Radius", NULL, & donutInnerRadius, 5.0f, radius - 10.0f);
             GuiEnable();
 
             GuiLine((Rectangle){ panelPos.x + 10, (float)panelPos.y + 12 + 170, panelRect.width - 20, 1 }, NULL);
@@ -186,12 +185,11 @@ int main(void)
                 panelPos.x + panelMargin,
                 (float)panelPos.y + 12 + 190,
                 panelRect.width - panelMargin*2,
-                panelRect.y + panelRect.height - panelPos.y + 12 + 190 - panelMargin
+                panelRect.y + panelRect.height - (panelPos.y + 12 + 190) - panelMargin
             };
             int contentHeight = sliceCount*35;
 
-            GuiScrollPanel(scrollPanelBounds, NULL,
-                (Rectangle){ 0, 0, panelRect.width - 25, (float)contentHeight },
+            GuiScrollPanel(scrollPanelBounds, NULL, (Rectangle){ 0, 0, panelRect.width - 25, (float)contentHeight },
                 &scrollContentOffset, &view);
 
             const float contentX = view.x + scrollContentOffset.x; // Left of content
@@ -208,7 +206,8 @@ int main(void)
                     DrawRectangle((int)(contentX + 15), rowY + 5, 20, 20, color);
 
                     // Label textbox
-                    if (GuiTextBox((Rectangle){ contentX + 45, (float)rowY, 75, 30 }, labels[i], 32, editingLabel[i])) editingLabel[i] = !editingLabel[i];
+                    if (GuiTextBox((Rectangle){ contentX + 45, (float)rowY, 75, 30 }, labels[i], 32, editingLabel[i]))
+                        editingLabel[i] = !editingLabel[i];
 
                     GuiSliderBar((Rectangle){ contentX + 130, (float)rowY, 110, 30 }, NULL, NULL, &values[i], 0.0f, 1000.0f);
                 }

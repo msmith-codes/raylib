@@ -359,7 +359,8 @@ void MinimizeWindow(void)
 // Restore window from being minimized/maximized
 void RestoreWindow(void)
 {
-    if (glfwGetWindowAttrib(platform.handle, GLFW_RESIZABLE) == GLFW_TRUE)
+    if ((glfwGetWindowAttrib(platform.handle, GLFW_ICONIFIED) == GLFW_TRUE) ||
+        (glfwGetWindowAttrib(platform.handle, GLFW_MAXIMIZED) == GLFW_TRUE))
     {
         // Restores the specified window if it was previously iconified (minimized) or maximized
         glfwRestoreWindow(platform.handle);
@@ -724,10 +725,15 @@ void SetWindowMinSize(int width, int height)
     CORE.Window.screenMin.width = width;
     CORE.Window.screenMin.height = height;
 
-    int minWidth  = (CORE.Window.screenMin.width  == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMin.width;
-    int minHeight = (CORE.Window.screenMin.height == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMin.height;
-    int maxWidth  = (CORE.Window.screenMax.width  == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMax.width;
-    int maxHeight = (CORE.Window.screenMax.height == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMax.height;
+    Vector2 scaleDpi = { 1.0f, 1.0f };
+#if !defined(__APPLE__)
+    if (FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI) && (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)) scaleDpi = GetWindowScaleDPI();
+#endif
+
+    int minWidth  = (CORE.Window.screenMin.width  == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMin.width*scaleDpi.x);
+    int minHeight = (CORE.Window.screenMin.height == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMin.height*scaleDpi.y);
+    int maxWidth  = (CORE.Window.screenMax.width  == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMax.width*scaleDpi.x);
+    int maxHeight = (CORE.Window.screenMax.height == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMax.height*scaleDpi.y);
 
     glfwSetWindowSizeLimits(platform.handle, minWidth, minHeight, maxWidth, maxHeight);
 }
@@ -738,10 +744,15 @@ void SetWindowMaxSize(int width, int height)
     CORE.Window.screenMax.width = width;
     CORE.Window.screenMax.height = height;
 
-    int minWidth  = (CORE.Window.screenMin.width  == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMin.width;
-    int minHeight = (CORE.Window.screenMin.height == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMin.height;
-    int maxWidth  = (CORE.Window.screenMax.width  == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMax.width;
-    int maxHeight = (CORE.Window.screenMax.height == 0)? GLFW_DONT_CARE : (int)CORE.Window.screenMax.height;
+    Vector2 scaleDpi = { 1.0f, 1.0f };
+#if !defined(__APPLE__)
+    if (FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI) && (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND)) scaleDpi = GetWindowScaleDPI();
+#endif
+
+    int minWidth  = (CORE.Window.screenMin.width  == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMin.width*scaleDpi.x);
+    int minHeight = (CORE.Window.screenMin.height == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMin.height*scaleDpi.y);
+    int maxWidth  = (CORE.Window.screenMax.width  == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMax.width*scaleDpi.x);
+    int maxHeight = (CORE.Window.screenMax.height == 0)? GLFW_DONT_CARE : (int)roundf(CORE.Window.screenMax.height*scaleDpi.y);
 
     glfwSetWindowSizeLimits(platform.handle, minWidth, minHeight, maxWidth, maxHeight);
 }
@@ -751,6 +762,15 @@ void SetWindowSize(int width, int height)
 {
     CORE.Window.screen.width = width;
     CORE.Window.screen.height = height;
+
+#if !defined(__APPLE__)
+    if (FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI) && !FLAG_IS_SET(CORE.Window.flags, FLAG_FULLSCREEN_MODE) && (glfwGetPlatform() != GLFW_PLATFORM_WAYLAND))
+    {
+        Vector2 scaleDpi = GetWindowScaleDPI();
+        width = (int)roundf((float)width*scaleDpi.x);
+        height = (int)roundf((float)height*scaleDpi.y);
+    }
+#endif
 
     glfwSetWindowSize(platform.handle, width, height);
 }
@@ -1050,10 +1070,7 @@ Vector2 GetWindowPosition(void)
 Vector2 GetWindowScaleDPI(void)
 {
     Vector2 scale = { 1.0f, 1.0f };
-    
-    if (FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI) && !FLAG_IS_SET(CORE.Window.flags, FLAG_FULLSCREEN_MODE))
-        glfwGetWindowContentScale(platform.handle, &scale.x, &scale.y);
-    
+    glfwGetWindowContentScale(platform.handle, &scale.x, &scale.y);
     return scale;
 }
 
@@ -1770,6 +1787,8 @@ int InitPlatform(void)
         {
             // Set screen size to logical pixel size, considering content scaling
             Vector2 scaleDpi = GetWindowScaleDPI();
+            if (FLAG_IS_SET(CORE.Window.flags, FLAG_FULLSCREEN_MODE)) scaleDpi = (Vector2){ 1.0f, 1.0f };
+
             CORE.Window.render.width = (int)roundf(CORE.Window.screen.width*scaleDpi.x);
             CORE.Window.render.height = (int)roundf(CORE.Window.screen.height*scaleDpi.y);
             //TRACELOG(LOG_INFO, "DPI SCALING: %.2f, %.2f", scaleDpi.x, scaleDpi.y);

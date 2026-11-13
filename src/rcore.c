@@ -448,8 +448,10 @@ typedef enum AutomationEventType {
     ACTION_SETTARGETFPS             // param[0]: fps
 } AutomationEventType;
 
+#define MAX_AUTOMATION_EVENT_TYPES  24
+
 // Event type name strings, required for export
-static const char *autoEventTypeName[] = {
+static const char *autoEventTypeName[MAX_AUTOMATION_EVENT_TYPES] = {
     "EVENT_NONE",
     "INPUT_KEY_UP",
     "INPUT_KEY_DOWN",
@@ -1088,11 +1090,12 @@ void BeginScissorMode(int x, int y, int width, int height)
 #if defined(__APPLE__)
     if (!CORE.Window.usingFbo)
     {
-        Vector2 scale = GetWindowScaleDPI();
+        Vector2 scale = { 1.0f, 1.0f };
+        if (FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI) && !FLAG_IS_SET(CORE.Window.flags, FLAG_FULLSCREEN_MODE)) scale = GetWindowScaleDPI();
         rlScissor((int)(x*scale.x), (int)(GetScreenHeight()*scale.y - (((y + height)*scale.y))), (int)(width*scale.x), (int)(height*scale.y));
     }
 #else
-    if (!CORE.Window.usingFbo && FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI))
+    if (!CORE.Window.usingFbo && FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI) && !FLAG_IS_SET(CORE.Window.flags, FLAG_FULLSCREEN_MODE))
     {
         Vector2 scale = GetWindowScaleDPI();
         rlScissor((int)(x*scale.x), (int)(CORE.Window.currentFbo.height - (y + height)*scale.y), (int)(width*scale.x), (int)(height*scale.y));
@@ -1822,12 +1825,8 @@ void TakeScreenshot(const char *fileName)
     // Security check to (partially) avoid malicious code
     if (strchr(fileName, '\'') != NULL) { TRACELOG(LOG_WARNING, "SYSTEM: Provided fileName could be potentially malicious, avoid [\'] character"); return; }
 
-    // Apply content scaling if required
-    Vector2 scale = { 1.0f, 1.0f };
-    if (FLAG_IS_SET(CORE.Window.flags, FLAG_WINDOW_HIGHDPI)) scale = GetWindowScaleDPI();
-
-    unsigned char *imgData = rlReadScreenPixels((int)((float)CORE.Window.render.width*scale.x), (int)((float)CORE.Window.render.height*scale.y));
-    Image image = { imgData, (int)((float)CORE.Window.render.width*scale.x), (int)((float)CORE.Window.render.height*scale.y), 1, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 };
+    unsigned char *imgData = rlReadScreenPixels(CORE.Window.render.width, CORE.Window.render.height);
+    Image image = { imgData, CORE.Window.render.width, CORE.Window.render.height, 1, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8 };
 
     char path[MAX_FILEPATH_LENGTH] = { 0 };
     if (!IsPathAbsolute(fileName)) snprintf(path, MAX_FILEPATH_LENGTH, "%s", TextFormat("%s/%s", CORE.Storage.basePath, fileName));
@@ -2246,16 +2245,16 @@ int FileCopy(const char *srcPath, const char *dstPath)
     int srcDataSize = 0;
     unsigned char *srcFileData = LoadFileData(srcPath, &srcDataSize);
 
-    // Create required paths if they do not exist
-    if (DirectoryExists(GetDirectoryPath(dstPath))) result = 0; // Already exists
-    else result = MakeDirectory(GetDirectoryPath(dstPath));
-
-    if (result == 0) // Directory created successfully or already exists
+    if ((srcFileData != NULL) && (srcDataSize > 0))
     {
-        if ((srcFileData != NULL) && (srcDataSize > 0))
+        // Get full destination directory path
+        const char *dstDirPath = GetDirectoryPath(dstPath);
+        
+        // Check if directory exist or create it otherwise
+        if (DirectoryExists(dstDirPath) || (MakeDirectory(dstDirPath) == 0))
         {
             bool saved = SaveFileData(dstPath, srcFileData, srcDataSize);
-            if (saved) result = 0;
+            if (saved) result = 0; // WARNING: SaveFileData() returns true on success
         }
     }
 
@@ -2578,7 +2577,8 @@ const char *GetDirectoryPath(const char *filePath)
 
     // In case provided path does not contain a root drive letter (C:\, D:\)
     // nor leading path separator (\, /), add the current directory path to dirPath
-    if ((filePath[1] != ':') && (filePath[0] != '\\') && (filePath[0] != '/'))
+    bool isRelative = (filePath[0] != '\\') && (filePath[0] != '/') && ((filePath[0] == '\0') || (filePath[1] != ':'));
+    if (isRelative)
     {
         // For security, set starting path to current directory,
         // obtained path will be concatenated to this
@@ -2597,10 +2597,19 @@ const char *GetDirectoryPath(const char *filePath)
         }
         else
         {
-            char *dirPathPtr = dirPath;
-            if ((filePath[1] != ':') && (filePath[0] != '\\') && (filePath[0] != '/')) dirPathPtr += 2;     // Skip drive letter, "C:"
-            memcpy(dirPathPtr, filePath, strlen(filePath) - (strlen(lastSlash) - 1));
-            dirPath[strlen(filePath) - strlen(lastSlash) + (((filePath[1] != ':') && (filePath[0] != '\\') && (filePath[0] != '/'))? 2 : 0)] = '\0';  // Add '\0' manually
+            int dirPathOffset = isRelative? 2 : 0;          // Skip "./" added for relative paths
+            int dirPathLength = (int)(lastSlash - filePath);
+
+            if ((dirPathOffset + dirPathLength) < MAX_FILEPATH_LENGTH)
+            {
+                memcpy(dirPath + dirPathOffset, filePath, dirPathLength);
+                dirPath[dirPathOffset + dirPathLength] = '\0';
+            }
+            else
+            {
+                TRACELOG(LOG_WARNING, "FILEIO: Directory path too long");
+                dirPath[0] = '\0';
+            }
         }
     }
 
@@ -2629,7 +2638,8 @@ const char *GetPrevDirectoryPath(const char *dirPath)
 
             if (!isFile)
             {
-                memcpy(prevDirPath, dirPath, i);
+                if (i < MAX_FILEPATH_LENGTH) memcpy(prevDirPath, dirPath, i);
+                else TRACELOG(LOG_WARNING, "FILEIO: Directory path too long");
                 break;
             }
             else isFile = false;
@@ -3129,7 +3139,6 @@ char *EncodeDataBase64(const unsigned char *data, int dataSize, int *outputSize)
 
     // Load some memory to store encoded string
     char *encodedData = (char *)RL_CALLOC(estimatedOutputSize, 1);
-    if (encodedData == NULL) return NULL;
 
     int outputCount = 0;
     for (int i = 0; i < dataSize;)
@@ -3190,14 +3199,14 @@ unsigned char *DecodeDataBase64(const char *text, int *outputSize)
     int dataSize = (int)strlen(text); // WARNING: Expecting NULL terminated strings!
     int ending = dataSize - 1;
     int padding = 0;
-    while (text[ending] == '=') { padding++; ending--; }
+    while ((ending >= 0) && (text[ending] == '=')) { padding++; ending--; }
     int estimatedOutputSize = 3*(dataSize/4) - padding;
+    if (estimatedOutputSize < 0) estimatedOutputSize = 0;   // Invalid input, i.e. "QQ=" or "===="
     int maxOutputSize = 3*(dataSize/4);
 
     // Load some memory to store decoded data
     // NOTE: Allocated enough size to include padding
     unsigned char *decodedData = (unsigned char *)RL_CALLOC(maxOutputSize, 1);
-    if (decodedData == NULL) return NULL;
 
     int outputCount = 0;
     for (int i = 0; i < dataSize;)
@@ -3758,6 +3767,8 @@ bool ExportAutomationEventList(AutomationEventList list, const char *fileName)
     byteCount += sprintf(txtData + byteCount, "c %i\n", list.count);
     for (unsigned int i = 0; i < list.count; i++)
     {
+        if ((list.events[i].type < 0) || (list.events[i].type >= MAX_AUTOMATION_EVENT_TYPES)) list.events[i].type = 0;
+        
         byteCount += snprintf(txtData + byteCount, 256, "e %i %i %i %i %i %i // Event: %s\n", list.events[i].frame, list.events[i].type,
             list.events[i].params[0], list.events[i].params[1], list.events[i].params[2], list.events[i].params[3], autoEventTypeName[list.events[i].type]);
     }
